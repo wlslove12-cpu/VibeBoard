@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchPosts } from '@/lib/db/supabase-storage';
+import { searchPosts } from '@/lib/db/file-storage';
 import { paginate } from '@/lib/utils/pagination';
 
 export async function GET(request: NextRequest) {
