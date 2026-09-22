@@ -23,13 +23,30 @@ const ensureFile = async (filePath: string, defaultData: any = []) => {
   }
 };
 
+// Date 직렬화를 위한 헬퍼 함수
+const serializeForStorage = (data: any): string => {
+  return JSON.stringify(data, (key, value) => {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value;
+  }, 2);
+};
+
 // Posts Operations
 export const getPosts = async (): Promise<Post[]> => {
   try {
     await ensureDataDir();
     await ensureFile(POSTS_FILE, []);
     const data = await fs.readFile(POSTS_FILE, 'utf-8');
-    return JSON.parse(data);
+    const posts = JSON.parse(data);
+
+    // ISO 문자열을 Date 객체로 변환
+    return posts.map((post: any) => ({
+      ...post,
+      createdAt: new Date(post.createdAt),
+      updatedAt: new Date(post.updatedAt),
+    }));
   } catch (error) {
     console.error('Failed to read posts:', error);
     return [];
@@ -43,16 +60,25 @@ export const getPostById = async (id: string): Promise<Post | null> => {
 
 export const createPost = async (input: CreatePostInput): Promise<Post> => {
   const posts = await getPosts();
+  const now = new Date();
   const newPost: Post = {
     ...input,
     id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
     viewCount: 0,
     commentCount: 0,
   };
   posts.push(newPost);
-  await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+
+  // JSON 직렬화 시 Date를 ISO 문자열로 변환
+  const postsForStorage = posts.map(post => ({
+    ...post,
+    createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
+    updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt,
+  }));
+
+  await fs.writeFile(POSTS_FILE, JSON.stringify(postsForStorage, null, 2));
   return newPost;
 };
 
@@ -66,7 +92,15 @@ export const updatePost = async (id: string, input: UpdatePostInput): Promise<Po
     ...input,
     updatedAt: new Date(),
   };
-  await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+
+  // JSON 직렬화
+  const postsForStorage = posts.map(post => ({
+    ...post,
+    createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
+    updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt,
+  }));
+
+  await fs.writeFile(POSTS_FILE, JSON.stringify(postsForStorage, null, 2));
   return posts[postIndex];
 };
 
@@ -86,7 +120,15 @@ export const incrementPostViewCount = async (id: string): Promise<void> => {
   const postIndex = posts.findIndex(post => post.id === id);
   if (postIndex !== -1) {
     posts[postIndex].viewCount += 1;
-    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+
+    // JSON 직렬화
+    const postsForStorage = posts.map(post => ({
+      ...post,
+      createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
+      updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt,
+    }));
+
+    await fs.writeFile(POSTS_FILE, JSON.stringify(postsForStorage, null, 2));
   }
 };
 
@@ -96,7 +138,14 @@ export const getComments = async (): Promise<Comment[]> => {
     await ensureDataDir();
     await ensureFile(COMMENTS_FILE, []);
     const data = await fs.readFile(COMMENTS_FILE, 'utf-8');
-    return JSON.parse(data);
+    const comments = JSON.parse(data);
+
+    // ISO 문자열을 Date 객체로 변환
+    return comments.map((comment: any) => ({
+      ...comment,
+      createdAt: new Date(comment.createdAt),
+      updatedAt: new Date(comment.updatedAt),
+    }));
   } catch (error) {
     console.error('Failed to read comments:', error);
     return [];
@@ -123,10 +172,10 @@ export const createComment = async (input: CreateCommentInput): Promise<Comment>
   const postIndex = posts.findIndex(post => post.id === input.postId);
   if (postIndex !== -1) {
     posts[postIndex].commentCount += 1;
-    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+    await fs.writeFile(POSTS_FILE, serializeForStorage(posts));
   }
 
-  await fs.writeFile(COMMENTS_FILE, JSON.stringify(comments, null, 2));
+  await fs.writeFile(COMMENTS_FILE, serializeForStorage(comments));
   return newComment;
 };
 
@@ -137,14 +186,14 @@ export const deleteComment = async (id: string): Promise<boolean> => {
 
   const postId = comments[commentIndex].postId;
   const filteredComments = comments.filter(c => c.id !== id);
-  await fs.writeFile(COMMENTS_FILE, JSON.stringify(filteredComments, null, 2));
+  await fs.writeFile(COMMENTS_FILE, serializeForStorage(filteredComments));
 
   // Update post comment count
   const posts = await getPosts();
   const postIndex = posts.findIndex(post => post.id === postId);
   if (postIndex !== -1) {
     posts[postIndex].commentCount = Math.max(0, posts[postIndex].commentCount - 1);
-    await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+    await fs.writeFile(POSTS_FILE, serializeForStorage(posts));
   }
 
   return true;
@@ -153,7 +202,7 @@ export const deleteComment = async (id: string): Promise<boolean> => {
 export const deleteCommentsByPostId = async (postId: string): Promise<void> => {
   const comments = await getComments();
   const filteredComments = comments.filter(c => c.postId !== postId);
-  await fs.writeFile(COMMENTS_FILE, JSON.stringify(filteredComments, null, 2));
+  await fs.writeFile(COMMENTS_FILE, serializeForStorage(filteredComments));
 };
 
 // Search
