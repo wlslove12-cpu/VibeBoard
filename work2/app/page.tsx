@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 
 export default function Home() {
   return (
@@ -15,12 +15,12 @@ export default function Home() {
         </p>
 
         <div className="flex gap-4 justify-center pt-6">
-          <Button asChild size="lg">
-            <Link href="/posts">게시판 보기</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/posts/create">글쓰기</Link>
-          </Button>
+          <Link href="/posts" className={buttonVariants({ size: "lg" })}>
+            게시판 보기
+          </Link>
+          <Link href="/posts/create" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            글쓰기
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mt-16 pt-12 border-t border-gray-200">

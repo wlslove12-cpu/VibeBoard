@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 
 export function Header() {
   return (
@@ -15,9 +15,12 @@ export function Header() {
             <Link href="/posts" className="text-gray-600 hover:text-gray-900">
               게시판
             </Link>
-            <Button asChild variant="default" size="sm">
-              <Link href="/posts/create">글쓰기</Link>
-            </Button>
+            <Link
+              href="/posts/create"
+              className={buttonVariants({ variant: "default", size: "sm" })}
+            >
+              글쓰기
+            </Link>
           </nav>
         </div>
       </div>

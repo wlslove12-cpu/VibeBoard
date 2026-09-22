@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Post } from '@/types';
 import { formatDate } from '@/lib/utils/date';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -106,12 +106,14 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         <Separator />
 
         <div className="p-6 flex gap-2">
-          <Button asChild variant="default">
-            <Link href={`/posts/${post.id}/edit`}>수정</Link>
-          </Button>
+          <Link href={`/posts/${post.id}/edit`} className={buttonVariants({ variant: "default" })}>
+            수정
+          </Link>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">삭제</Button>
+              <button className={buttonVariants({ variant: "destructive" })}>
+                삭제
+              </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogTitle>게시글 삭제</AlertDialogTitle>
