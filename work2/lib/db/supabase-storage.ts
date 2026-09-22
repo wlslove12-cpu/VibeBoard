@@ -2,9 +2,18 @@ import { supabase } from '@/lib/supabase/client';
 import { Post, CreatePostInput, UpdatePostInput } from '@/types';
 import { Comment, CreateCommentInput } from '@/types';
 
+const checkSupabase = () => {
+  if (!supabase) {
+    throw new Error(
+      'Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+    );
+  }
+};
+
 // Posts Operations
 export const getPosts = async (): Promise<Post[]> => {
   try {
+    checkSupabase();
     const { data, error } = await supabase
       .from('posts')
       .select('*')
