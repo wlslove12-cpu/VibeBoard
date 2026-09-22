@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCommentsByPostId, createComment } from '@/lib/db/file-storage';
+import { getCommentsByPostId, createComment } from '@/lib/db/supabase-storage';
 import { commentSchema } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
