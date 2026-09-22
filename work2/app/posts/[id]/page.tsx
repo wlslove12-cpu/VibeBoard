@@ -14,14 +14,15 @@ import { CommentForm } from '@/app/components/comments/CommentForm';
 import { CommentList } from '@/app/components/comments/CommentList';
 
 interface PostDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function PostDetailPage({ params }: PostDetailPageProps) {
+export default function PostDetailPage({ params: paramsPromise }: PostDetailPageProps) {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
+  const [postId, setPostId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -30,6 +31,8 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
+        const params = await paramsPromise;
+        setPostId(params.id);
         const response = await fetch(`/api/posts/${params.id}`);
         if (!response.ok) throw new Error('게시글을 찾을 수 없습니다');
         const data = await response.json();
@@ -42,12 +45,12 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
     };
 
     fetchPost();
-  }, [params.id]);
+  }, [paramsPromise]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/posts/${params.id}`, {
+      const response = await fetch(`/api/posts/${postId}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('게시글을 삭제할 수 없습니다');
@@ -138,10 +141,10 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">댓글 ({post.commentCount})</h2>
         <CommentForm
-          postId={params.id}
+          postId={postId}
           onCommentAdded={() => setCommentRefresh(prev => prev + 1)}
         />
-        <CommentList postId={params.id} refreshTrigger={commentRefresh} />
+        <CommentList postId={postId} refreshTrigger={commentRefresh} />
       </div>
     </div>
   );

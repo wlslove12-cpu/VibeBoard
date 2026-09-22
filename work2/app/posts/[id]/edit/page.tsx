@@ -5,12 +5,12 @@ import { Post } from '@/types';
 import { PostForm } from '@/app/components/posts/PostForm';
 
 interface EditPostPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function EditPostPage({ params }: EditPostPageProps) {
+export default function EditPostPage({ params: paramsPromise }: EditPostPageProps) {
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,6 +18,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
+        const params = await paramsPromise;
         const response = await fetch(`/api/posts/${params.id}`);
         if (!response.ok) throw new Error('게시글을 찾을 수 없습니다');
         const data = await response.json();
@@ -30,7 +31,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     };
 
     fetchPost();
-  }, [params.id]);
+  }, [paramsPromise]);
 
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
 
