@@ -3,10 +3,10 @@ import { deleteComment } from '@/lib/db/supabase-storage';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const success = await deleteComment(id);
 
     if (!success) {

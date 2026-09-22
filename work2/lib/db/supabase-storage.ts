@@ -40,6 +40,7 @@ export const getPosts = async (): Promise<Post[]> => {
 
 export const getPostById = async (id: string): Promise<Post | null> => {
   try {
+    checkSupabase();
     const { data, error } = await supabase
       .from('posts')
       .select('*')
@@ -72,18 +73,20 @@ export const getPostById = async (id: string): Promise<Post | null> => {
 
 export const createPost = async (input: CreatePostInput): Promise<Post> => {
   try {
+    const id = Date.now().toString();
     const { data, error } = await supabase
       .from('posts')
       .insert([
         {
+          id,
           title: input.title,
           content: input.content,
           author: input.author,
           tags: input.tags || [],
           view_count: 0,
           comment_count: 0,
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
       ])
       .select()
@@ -237,16 +240,18 @@ export const getCommentsByPostId = async (postId: string): Promise<Comment[]> =>
 
 export const createComment = async (input: CreateCommentInput): Promise<Comment> => {
   try {
+    const id = Date.now().toString();
     // Create comment
     const { data, error } = await supabase
       .from('comments')
       .insert([
         {
+          id,
           post_id: input.postId,
           author: input.author,
           content: input.content,
-          created_at: new Date(),
-          updated_at: new Date(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
       ])
       .select()
