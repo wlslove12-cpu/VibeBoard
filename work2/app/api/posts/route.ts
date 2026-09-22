@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPosts, createPost } from '@/lib/db/file-storage';
+import { getPosts, createPost } from '@/lib/db/supabase-storage';
 import { postSchema } from '@/lib/utils/validation';
 import { paginate } from '@/lib/utils/pagination';
 
