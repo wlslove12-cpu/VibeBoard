@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { deleteComment } from '@/lib/db/supabase-storage';
+import { deleteComment } from '@/lib/db/file-storage';
 
 export async function DELETE(
   request: NextRequest,

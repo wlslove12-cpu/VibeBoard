@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPostById, updatePost, deletePost, incrementPostViewCount } from '@/lib/db/supabase-storage';
+import { getPostById, updatePost, deletePost, incrementPostViewCount } from '@/lib/db/file-storage';
 import { postSchema } from '@/lib/utils/validation';
 
 export async function GET(
