@@ -7,107 +7,54 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
 const COMMENTS_FILE = path.join(DATA_DIR, 'comments.json');
 
-const ensureDataDir = async () => {
+async function ensureDataDir() {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
   } catch (error) {
-    // Directory might already exist
+    // ignore
   }
-};
+}
 
-const readPosts = async (): Promise<any[]> => {
+async function readFile(filePath: string): Promise<any[]> {
   try {
     await ensureDataDir();
-    const data = await fs.readFile(POSTS_FILE, 'utf-8');
-    const parsed = JSON.parse(data);
-    console.log('Read posts from file:', parsed.length, 'posts');
-    return parsed;
+    const content = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(content);
   } catch (error) {
-    console.log('No posts file found, returning empty array');
     return [];
   }
-};
+}
 
-const writePosts = async (posts: any[]) => {
+async function writeFile(filePath: string, data: any[]): Promise<void> {
   await ensureDataDir();
-  console.log('Writing', posts.length, 'posts to file');
-  await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
-  console.log('Posts written successfully');
-};
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+}
 
-const readComments = async (): Promise<any[]> => {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(COMMENTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-};
+// Posts
+export async function getPosts(): Promise<Post[]> {
+  const rows = await readFile(POSTS_FILE);
+  return rows.map((row: any) => ({
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    author: row.author,
+    tags: row.tags || [],
+    viewCount: row.viewCount || 0,
+    commentCount: row.commentCount || 0,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+  }));
+}
 
-const writeComments = async (comments: any[]) => {
-  await ensureDataDir();
-  await fs.writeFile(COMMENTS_FILE, JSON.stringify(comments, null, 2));
-};
-
-const convertToPost = (row: any): Post => ({
-  id: row.id,
-  title: row.title,
-  content: row.content,
-  author: row.author,
-  createdAt: new Date(row.createdAt),
-  updatedAt: new Date(row.updatedAt),
-  viewCount: row.viewCount || 0,
-  commentCount: row.commentCount || 0,
-  tags: row.tags || [],
-});
-
-const convertToComment = (row: any): Comment => ({
-  id: row.id,
-  postId: row.postId,
-  author: row.author,
-  content: row.content,
-  createdAt: new Date(row.createdAt),
-  updatedAt: new Date(row.updatedAt),
-});
-
-const convertPostForStorage = (post: Post) => ({
-  id: post.id,
-  title: post.title,
-  content: post.content,
-  author: post.author,
-  tags: post.tags,
-  viewCount: post.viewCount,
-  commentCount: post.commentCount,
-  createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
-  updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt,
-});
-
-const convertCommentForStorage = (comment: Comment) => ({
-  id: comment.id,
-  postId: comment.postId,
-  author: comment.author,
-  content: comment.content,
-  createdAt: comment.createdAt instanceof Date ? comment.createdAt.toISOString() : comment.createdAt,
-  updatedAt: comment.updatedAt instanceof Date ? comment.updatedAt.toISOString() : comment.updatedAt,
-});
-
-// Posts Operations
-export const getPosts = async (): Promise<Post[]> => {
-  const rows = await readPosts();
-  return rows.map(convertToPost);
-};
-
-export const getPostById = async (id: string): Promise<Post | null> => {
+export async function getPostById(id: string): Promise<Post | null> {
   const posts = await getPosts();
-  const post = posts.find(p => p.id === id);
-  return post || null;
-};
+  return posts.find(p => p.id === id) || null;
+}
 
-export const createPost = async (input: CreatePostInput): Promise<Post> => {
-  const posts = await readPosts();
+export async function createPost(input: CreatePostInput): Promise<Post> {
+  const rows = await readFile(POSTS_FILE);
   const now = new Date();
-  const newPost: Post = {
+  const post = {
     id: Date.now().toString(),
     title: input.title,
     content: input.content,
@@ -115,124 +62,145 @@ export const createPost = async (input: CreatePostInput): Promise<Post> => {
     tags: input.tags || [],
     viewCount: 0,
     commentCount: 0,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
   };
 
-  posts.push(convertPostForStorage(newPost));
-  await writePosts(posts);
-  return newPost;
-};
+  rows.push(post);
+  await writeFile(POSTS_FILE, rows);
 
-export const updatePost = async (id: string, input: UpdatePostInput): Promise<Post | null> => {
-  const posts = await readPosts();
-  const index = posts.findIndex(p => p.id === id);
-  if (index === -1) return null;
+  return {
+    ...post,
+    createdAt: new Date(post.createdAt),
+    updatedAt: new Date(post.updatedAt),
+  };
+}
 
-  const updatedPost = {
-    ...posts[index],
-    ...(input.title !== undefined && { title: input.title }),
-    ...(input.content !== undefined && { content: input.content }),
-    ...(input.author !== undefined && { author: input.author }),
+export async function updatePost(id: string, input: UpdatePostInput): Promise<Post | null> {
+  const rows = await readFile(POSTS_FILE);
+  const idx = rows.findIndex((r: any) => r.id === id);
+  if (idx === -1) return null;
+
+  rows[idx] = {
+    ...rows[idx],
+    ...(input.title && { title: input.title }),
+    ...(input.content && { content: input.content }),
+    ...(input.author && { author: input.author }),
     ...(input.tags !== undefined && { tags: input.tags }),
     updatedAt: new Date().toISOString(),
   };
 
-  posts[index] = updatedPost;
-  await writePosts(posts);
-  return convertToPost(updatedPost);
-};
+  await writeFile(POSTS_FILE, rows);
 
-export const deletePost = async (id: string): Promise<boolean> => {
-  const posts = await readPosts();
-  const index = posts.findIndex(p => p.id === id);
-  if (index === -1) return false;
+  const updated = rows[idx];
+  return {
+    ...updated,
+    createdAt: new Date(updated.createdAt),
+    updatedAt: new Date(updated.updatedAt),
+  };
+}
 
-  posts.splice(index, 1);
-  await writePosts(posts);
+export async function deletePost(id: string): Promise<boolean> {
+  const rows = await readFile(POSTS_FILE);
+  const idx = rows.findIndex((r: any) => r.id === id);
+  if (idx === -1) return false;
+
+  rows.splice(idx, 1);
+  await writeFile(POSTS_FILE, rows);
   await deleteCommentsByPostId(id);
+
   return true;
-};
+}
 
-export const incrementPostViewCount = async (id: string): Promise<void> => {
-  const posts = await readPosts();
-  const index = posts.findIndex(p => p.id === id);
-  if (index !== -1) {
-    posts[index].viewCount = (posts[index].viewCount || 0) + 1;
-    await writePosts(posts);
+export async function incrementPostViewCount(id: string): Promise<void> {
+  const rows = await readFile(POSTS_FILE);
+  const idx = rows.findIndex((r: any) => r.id === id);
+  if (idx !== -1) {
+    rows[idx].viewCount = (rows[idx].viewCount || 0) + 1;
+    await writeFile(POSTS_FILE, rows);
   }
-};
+}
 
-// Comments Operations
-export const getComments = async (): Promise<Comment[]> => {
-  const rows = await readComments();
-  return rows.map(convertToComment);
-};
+// Comments
+export async function getComments(): Promise<Comment[]> {
+  const rows = await readFile(COMMENTS_FILE);
+  return rows.map((row: any) => ({
+    id: row.id,
+    postId: row.postId,
+    author: row.author,
+    content: row.content,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+  }));
+}
 
-export const getCommentsByPostId = async (postId: string): Promise<Comment[]> => {
+export async function getCommentsByPostId(postId: string): Promise<Comment[]> {
   const comments = await getComments();
   return comments.filter(c => c.postId === postId);
-};
+}
 
-export const createComment = async (input: CreateCommentInput): Promise<Comment> => {
-  const comments = await readComments();
+export async function createComment(input: CreateCommentInput): Promise<Comment> {
+  const rows = await readFile(COMMENTS_FILE);
   const now = new Date();
-  const newComment: Comment = {
+  const comment = {
     id: Date.now().toString(),
     postId: input.postId,
     author: input.author,
     content: input.content,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
   };
 
-  comments.push(convertCommentForStorage(newComment));
-  await writeComments(comments);
+  rows.push(comment);
+  await writeFile(COMMENTS_FILE, rows);
 
   // Update post comment count
-  const posts = await readPosts();
-  const postIndex = posts.findIndex(p => p.id === input.postId);
-  if (postIndex !== -1) {
-    posts[postIndex].commentCount = (posts[postIndex].commentCount || 0) + 1;
-    await writePosts(posts);
+  const posts = await readFile(POSTS_FILE);
+  const pidx = posts.findIndex((p: any) => p.id === input.postId);
+  if (pidx !== -1) {
+    posts[pidx].commentCount = (posts[pidx].commentCount || 0) + 1;
+    await writeFile(POSTS_FILE, posts);
   }
 
-  return newComment;
-};
+  return {
+    ...comment,
+    createdAt: new Date(comment.createdAt),
+    updatedAt: new Date(comment.updatedAt),
+  };
+}
 
-export const deleteComment = async (id: string): Promise<boolean> => {
-  const comments = await readComments();
-  const index = comments.findIndex(c => c.id === id);
-  if (index === -1) return false;
+export async function deleteComment(id: string): Promise<boolean> {
+  const rows = await readFile(COMMENTS_FILE);
+  const idx = rows.findIndex((r: any) => r.id === id);
+  if (idx === -1) return false;
 
-  const postId = comments[index].postId;
-  comments.splice(index, 1);
-  await writeComments(comments);
+  const postId = rows[idx].postId;
+  rows.splice(idx, 1);
+  await writeFile(COMMENTS_FILE, rows);
 
   // Update post comment count
-  const posts = await readPosts();
-  const postIndex = posts.findIndex(p => p.id === postId);
-  if (postIndex !== -1) {
-    posts[postIndex].commentCount = Math.max(0, (posts[postIndex].commentCount || 0) - 1);
-    await writePosts(posts);
+  const posts = await readFile(POSTS_FILE);
+  const pidx = posts.findIndex((p: any) => p.id === postId);
+  if (pidx !== -1) {
+    posts[pidx].commentCount = Math.max(0, (posts[pidx].commentCount || 0) - 1);
+    await writeFile(POSTS_FILE, posts);
   }
 
   return true;
-};
+}
 
-export const deleteCommentsByPostId = async (postId: string): Promise<void> => {
-  const comments = await readComments();
-  const filtered = comments.filter(c => c.postId !== postId);
-  await writeComments(filtered);
-};
+export async function deleteCommentsByPostId(postId: string): Promise<void> {
+  const rows = await readFile(COMMENTS_FILE);
+  const filtered = rows.filter((r: any) => r.postId !== postId);
+  await writeFile(COMMENTS_FILE, filtered);
+}
 
-// Search
-export const searchPosts = async (query: string): Promise<Post[]> => {
+export async function searchPosts(query: string): Promise<Post[]> {
   const posts = await getPosts();
-  const lowerQuery = query.toLowerCase();
-  return posts.filter(post =>
-    post.title.toLowerCase().includes(lowerQuery) ||
-    post.content.toLowerCase().includes(lowerQuery) ||
-    post.author.toLowerCase().includes(lowerQuery)
+  const lower = query.toLowerCase();
+  return posts.filter(p =>
+    p.title.toLowerCase().includes(lower) ||
+    p.content.toLowerCase().includes(lower) ||
+    p.author.toLowerCase().includes(lower)
   );
-};
+}
