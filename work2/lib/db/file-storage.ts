@@ -19,15 +19,20 @@ const readPosts = async (): Promise<any[]> => {
   try {
     await ensureDataDir();
     const data = await fs.readFile(POSTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
+    const parsed = JSON.parse(data);
+    console.log('Read posts from file:', parsed.length, 'posts');
+    return parsed;
+  } catch (error) {
+    console.log('No posts file found, returning empty array');
     return [];
   }
 };
 
 const writePosts = async (posts: any[]) => {
   await ensureDataDir();
+  console.log('Writing', posts.length, 'posts to file');
   await fs.writeFile(POSTS_FILE, JSON.stringify(posts, null, 2));
+  console.log('Posts written successfully');
 };
 
 const readComments = async (): Promise<any[]> => {

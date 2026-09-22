@@ -8,11 +8,15 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    console.log('Getting post with id:', id);
+
     const post = await getPostById(id);
+    console.log('Found post:', post);
 
     if (!post) {
+      console.log('Post not found for id:', id);
       return NextResponse.json(
-        { error: '게시글을 찾을 수 없습니다' },
+        { error: '게시글을 찾을 수 없습니다', id },
         { status: 404 }
       );
     }
@@ -25,7 +29,7 @@ export async function GET(
   } catch (error) {
     console.error('Failed to get post:', error);
     return NextResponse.json(
-      { error: '게시글을 불러올 수 없습니다' },
+      { error: '게시글을 불러올 수 없습니다', details: String(error) },
       { status: 500 }
     );
   }
